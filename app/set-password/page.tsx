@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, KeyRound, LockKeyhole } from "lucide-react";
+import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase/client";
 import { Logo } from "@/components/logo";
 
@@ -17,9 +18,50 @@ export default function SetPasswordPage() {
   useEffect(() => {
     let mounted = true;
 
-    supabase.auth.getSession().then(({ data }) => {
-      if (mounted && data.session) setSessionReady(true);
-    });
+    async function restoreInviteSession() {
+      const { data: current } = await supabase.auth.getSession();
+      if (current.session) {
+        if (mounted) setSessionReady(true);
+        window.history.replaceState({}, "", window.location.pathname);
+        return;
+      }
+
+      const query = new URLSearchParams(window.location.search);
+      const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+      const callbackError = query.get("error_description") ?? hash.get("error_description");
+      if (callbackError) {
+        if (mounted) setError("초대 링크가 만료되었습니다. 새 비밀번호 설정 메일을 열어 주세요.");
+        return;
+      }
+
+      let session: Session | null = null;
+      const code = query.get("code");
+      if (code) {
+        const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+        if (!exchangeError) session = data.session;
+      } else {
+        const accessToken = hash.get("access_token");
+        const refreshToken = hash.get("refresh_token");
+        if (accessToken && refreshToken) {
+          const { data, error: sessionError } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+          if (!sessionError) session = data.session;
+        }
+      }
+
+      if (!mounted) return;
+      if (session) {
+        setSessionReady(true);
+        setError("");
+        window.history.replaceState({}, "", window.location.pathname);
+      } else {
+        setError("인증 정보를 확인할 수 없습니다. 새 비밀번호 설정 메일을 열어 주세요.");
+      }
+    }
+
+    void restoreInviteSession();
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       if (mounted && session) setSessionReady(true);
@@ -88,7 +130,7 @@ export default function SetPasswordPage() {
           </label>
           {error && <p className="form-error">{error}</p>}
           <button className="button button-primary button-wide" disabled={loading || !sessionReady}>
-            {loading ? "저장 중..." : sessionReady ? "비밀번호 저장" : "초대 확인 중..."}<ArrowRight size={18} />
+            {loading ? "저장 중..." : sessionReady ? "비밀번호 저장" : error ? "새 메일 필요" : "초대 확인 중..."}<ArrowRight size={18} />
           </button>
           <p className="login-help">비밀번호는 Supabase Authentication에 안전하게 저장됩니다.</p>
         </form>
