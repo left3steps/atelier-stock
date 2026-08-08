@@ -85,6 +85,7 @@ img { display: block; max-width: 100%; }
 .metric-card p { margin: 0 0 3px; color: var(--muted); font-size: 11px; font-weight: 650; }
 .metric-card strong { font-family: Georgia, serif; font-size: 27px; font-weight: 500; }
 .metric-card small { margin-left: 4px; color: var(--muted); font-size: 11px; }
+.inventory-metrics .metric-card { min-height: 88px; padding-block: 16px; }
 
 .inventory-panel { overflow: hidden; }
 .inventory-toolbar { min-height: 72px; display: flex; align-items: center; justify-content: space-between; gap: 15px; padding: 14px 18px; border-bottom: 1px solid var(--line); }
@@ -133,6 +134,24 @@ img { display: block; max-width: 100%; }
 .table-action:hover { background: #f3f6f4; border-color: var(--line-strong); }
 .panel-footer { min-height: 45px; display: flex; align-items: center; padding: 0 20px; color: var(--muted); background: #fbfcfb; border-top: 1px solid var(--line); font-size: 10px; }
 .panel-footer strong { color: var(--ink); margin: 0 3px; }
+
+.inventory-product-panel .inventory-toolbar { min-height: 64px; }
+.inventory-product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(138px, 1fr)); gap: 11px; padding: 16px; background: #f8faf8; }
+.inventory-product-card { min-width: 0; overflow: hidden; background: #fff; border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 1px 2px rgba(18,35,29,.025); transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease; }
+.inventory-product-card:hover { transform: translateY(-2px); border-color: #bdc9c3; box-shadow: 0 9px 22px rgba(18,35,29,.08); }
+.inventory-product-card:focus-visible { outline: 3px solid rgba(37,95,77,.17); outline-offset: 2px; }
+.inventory-card-image { position: relative; aspect-ratio: 1 / 1.03; overflow: hidden; background: #f1f3f1; border-bottom: 1px solid #edf0ee; }
+.inventory-card-image .product-thumb { width: 100%; height: 100%; border: 0; border-radius: 0; background: #f1f3f1; }
+.inventory-card-image .product-thumb img { object-fit: contain; transition: transform .2s ease; }
+.inventory-product-card:hover .inventory-card-image img { transform: scale(1.025); }
+.inventory-card-image .stock-badge { position: absolute; top: 8px; right: 8px; min-width: 0; padding: 5px 7px; border: 1px solid rgba(255,255,255,.72); box-shadow: 0 2px 8px rgba(20,33,28,.09); }
+.inventory-card-copy { display: flex; flex-direction: column; gap: 9px; padding: 11px 12px 12px; }
+.inventory-card-copy > strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; letter-spacing: -.01em; }
+.inventory-card-copy > span { display: flex; align-items: baseline; gap: 3px; color: var(--muted); }
+.inventory-card-copy small { font-size: 9px; font-weight: 650; }
+.inventory-card-copy b { margin-left: auto; color: var(--ink); font-family: Georgia, serif; font-size: 21px; line-height: 1; font-weight: 500; }
+.inventory-card-copy b.low { color: var(--amber); }
+.inventory-card-copy b.out { color: var(--red); }
 
 .empty-state, .page-loading, .inline-error { min-height: 310px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 40px; }
 .empty-icon { width: 54px; height: 54px; display: grid; place-items: center; border-radius: 50%; background: #f0f3f1; color: var(--muted); }
@@ -321,6 +340,7 @@ img { display: block; max-width: 100%; }
   .filter-group { justify-content: stretch; }
   .filter-group > svg { display: none; }
   .filter-group button { flex: 1; }
+  .inventory-product-grid { grid-template-columns: repeat(auto-fill, minmax(135px, 1fr)); gap: 9px; padding: 11px; }
   .inventory-table, .inventory-table tbody { display: block; }
   .inventory-table thead { display: none; }
   .inventory-table tr { position: relative; display: grid; grid-template-columns: 1fr auto; gap: 8px 12px; padding: 14px 14px 13px; border-bottom: 1px solid var(--line); }
@@ -370,6 +390,8 @@ img { display: block; max-width: 100%; }
   .metric-card { gap: 8px; }
   .metric-icon { display: none; }
   .page-header > div > p:last-child { max-width: 250px; }
+  .inventory-product-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .inventory-card-copy { padding: 10px; }
   .product-hero { align-items: flex-start; }
   .thumb-large { width: 105px; height: 132px; }
   .product-hero-info h2 { margin-top: 10px; font-size: 18px; }
