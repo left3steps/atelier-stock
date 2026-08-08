@@ -8,6 +8,11 @@ export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
+    const authCallback = `${window.location.search}${window.location.hash}`;
+    if (authCallback.includes("code=") || authCallback.includes("access_token=") || authCallback.includes("type=invite")) {
+      router.replace(`/set-password${authCallback}`);
+      return;
+    }
     router.replace("/inventory");
   }, [router]);
 
