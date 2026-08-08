@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowDownToLine, ArrowLeft, ArrowUpFromLine, Clock3 } from "lucide-react";
+import { ArrowDownToLine, ArrowLeft, ArrowUpFromLine, Clock3, Handshake } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import { PageLoading } from "@/components/page-loading";
 import { ProductThumb } from "@/components/product-thumb";
@@ -21,6 +21,8 @@ export default function ProductDetailPage() {
   const [transactions, setTransactions] = useState<InventoryTransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [rentalSaving, setRentalSaving] = useState(false);
+  const [rentalError, setRentalError] = useState("");
   const [dialog, setDialog] = useState<{ row: InventoryRow; type: TransactionType } | null>(null);
 
   useEffect(() => {
@@ -74,6 +76,26 @@ export default function ProductDetailPage() {
   }, [rows]);
   const total = rows.reduce((sum, row) => sum + row.quantity, 0);
 
+  async function toggleRental() {
+    if (!product || rentalSaving) return;
+    const nextRentalState = !product.is_rented;
+    setRentalSaving(true);
+    setRentalError("");
+    const { data, error: updateError } = await supabase
+      .from("products")
+      .update({
+        is_rented: nextRentalState,
+        rented_at: nextRentalState ? new Date().toISOString() : null,
+      })
+      .eq("id", product.id)
+      .select()
+      .single();
+
+    if (updateError) setRentalError("대여 상태를 변경하지 못했습니다. 다시 시도해 주세요.");
+    else setProduct(data as Product);
+    setRentalSaving(false);
+  }
+
   if (loading) return <PageLoading label="상품 정보를 불러오는 중" />;
   if (error || !product) return <div className="inline-error standalone"><strong>상품을 불러오지 못했습니다.</strong><p>{error}</p><Link href="/inventory" className="button button-secondary">재고 현황으로</Link></div>;
 
@@ -81,11 +103,14 @@ export default function ProductDetailPage() {
     <div className="page-stack">
       <header className="page-header detail-header">
         <div className="header-with-back"><Link href="/inventory" className="icon-button"><ArrowLeft size={20} /></Link><div><p className="eyebrow">PRODUCT DETAIL</p><h1>{product.name}</h1><p>{product.brand} · {product.product_code}{product.category ? ` · ${product.category}` : ""}</p></div></div>
+        <button className={`button ${product.is_rented ? "button-rental-active" : "button-secondary"}`} onClick={toggleRental} disabled={rentalSaving}><Handshake size={17} />{rentalSaving ? "변경 중..." : product.is_rented ? "대여 종료" : "대여중으로 설정"}</button>
       </header>
+
+      {rentalError && <p className="form-error rental-error">{rentalError}</p>}
 
       <section className="product-hero panel">
         <ProductThumb path={product.main_image_path} alt={product.name} size="large" />
-        <div className="product-hero-info"><span className="stock-badge normal">판매 중</span><h2>{product.name}</h2><code>{product.product_code}</code><div className="product-facts"><span><small>브랜드</small><strong>{product.brand}</strong></span><span><small>카테고리</small><strong>{product.category || "미지정"}</strong></span><span><small>컬러</small><strong>{grouped.length}</strong></span><span><small>SKU</small><strong>{rows.length}</strong></span><span><small>총 재고</small><strong>{total.toLocaleString()}개</strong></span></div></div>
+        <div className="product-hero-info"><div className="product-status-row"><span className="stock-badge normal">판매 중</span>{product.is_rented && <span className="rental-badge static"><Handshake size={12} />대여중</span>}</div><h2>{product.name}</h2><code>{product.product_code}</code><div className="product-facts"><span><small>브랜드</small><strong>{product.brand}</strong></span><span><small>카테고리</small><strong>{product.category || "미지정"}</strong></span><span><small>컬러</small><strong>{grouped.length}</strong></span><span><small>SKU</small><strong>{rows.length}</strong></span><span><small>총 재고</small><strong>{total.toLocaleString()}개</strong></span><span><small>대여 상태</small><strong>{product.is_rented ? "대여중" : "대여 가능"}</strong></span></div></div>
       </section>
 
       <section className="panel detail-section">

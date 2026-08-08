@@ -2,14 +2,14 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { AlertTriangle, Boxes, PackagePlus, Search, SlidersHorizontal, Tags } from "lucide-react";
+import { AlertTriangle, Boxes, Handshake, PackagePlus, Search, SlidersHorizontal, Tags } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import { PageLoading } from "@/components/page-loading";
 import { ProductThumb } from "@/components/product-thumb";
 import { supabase } from "@/lib/supabase/client";
 import type { InventoryRow, Product } from "@/lib/types";
 
-type StockFilter = "all" | "low" | "out";
+type StockFilter = "all" | "low" | "out" | "rented";
 type ProductStockStatus = "normal" | "low" | "out";
 
 interface InventoryProduct {
@@ -85,6 +85,7 @@ export default function InventoryPage() {
     units: products.reduce((sum, product) => sum + product.quantity, 0),
     low: products.filter((product) => product.status === "low").length,
     out: products.filter((product) => product.status === "out").length,
+    rented: products.filter((product) => product.product.is_rented).length,
   }), [products]);
 
   const brands = useMemo(() => [...new Set(products.map((item) => item.product.brand).filter(Boolean))].sort((a, b) => a.localeCompare(b, "ko")), [products]);
@@ -99,7 +100,7 @@ export default function InventoryPage() {
         item.product.category ?? "",
         ...item.rows.flatMap((row) => [row.sku, row.color_name, row.size]),
       ].some((value) => value.toLocaleLowerCase().includes(term));
-      const matchesStock = filter === "all" || item.status === filter;
+      const matchesStock = filter === "all" || (filter === "rented" ? item.product.is_rented : item.status === filter);
       const matchesBrand = brandFilter === "all" || item.product.brand === brandFilter;
       return matchesSearch && matchesStock && matchesBrand;
     });
@@ -117,6 +118,7 @@ export default function InventoryPage() {
         <article className="metric-card"><span className="metric-icon ink"><Boxes size={20} /></span><div><p>총 재고</p><strong>{totals.units.toLocaleString()}</strong><small>개</small></div></article>
         <article className="metric-card"><span className="metric-icon amber"><AlertTriangle size={20} /></span><div><p>저재고 상품</p><strong>{totals.low.toLocaleString()}</strong><small>개</small></div></article>
         <article className="metric-card"><span className="metric-icon red"><AlertTriangle size={20} /></span><div><p>품절 상품</p><strong>{totals.out.toLocaleString()}</strong><small>개</small></div></article>
+        <article className="metric-card"><span className="metric-icon violet"><Handshake size={20} /></span><div><p>대여중 상품</p><strong>{totals.rented.toLocaleString()}</strong><small>개</small></div></article>
       </section>
 
       <section className="panel inventory-panel inventory-product-panel">
@@ -133,13 +135,13 @@ export default function InventoryPage() {
             </label>
             <div className="filter-group" aria-label="재고 필터">
               <SlidersHorizontal size={17} />
-              {([['all', '전체'], ['low', '저재고'], ['out', '품절']] as const).map(([value, label]) => <button key={value} className={filter === value ? "active" : ""} onClick={() => setFilter(value)}>{label}</button>)}
+              {([['all', '전체'], ['low', '저재고'], ['out', '품절'], ['rented', '대여중']] as const).map(([value, label]) => <button key={value} className={filter === value ? "active" : ""} onClick={() => setFilter(value)}>{label}</button>)}
             </div>
           </div>
         </div>
 
         {loading ? <PageLoading /> : error ? <div className="inline-error"><strong>재고를 불러오지 못했습니다.</strong><p>{error}</p><button className="button button-secondary" onClick={loadInventory}>다시 시도</button></div> : filtered.length === 0 ? (
-          <EmptyState icon={Boxes} title={rows.length ? "검색 결과가 없습니다" : "등록된 상품이 없습니다"} description={rows.length ? "검색어나 재고 필터를 바꿔보세요." : "첫 상품과 컬러·사이즈 SKU를 등록해 보세요."} action={!rows.length && <Link href="/products/new" className="button button-primary">첫 상품 등록</Link>} />
+          <EmptyState icon={Boxes} title={rows.length ? "검색 결과가 없습니다" : "등록된 상품이 없습니다"} description={rows.length ? "검색어나 브랜드·상태 필터를 바꿔보세요." : "첫 상품과 컬러·사이즈 SKU를 등록해 보세요."} action={!rows.length && <Link href="/products/new" className="button button-primary">첫 상품 등록</Link>} />
         ) : (
           <div className="inventory-product-grid">
             {filtered.map((item) => (
@@ -147,10 +149,11 @@ export default function InventoryPage() {
                 key={item.product.id}
                 href={`/products/detail?id=${item.product.id}`}
                 className="inventory-product-card"
-                aria-label={`${item.product.product_code}, 재고 ${item.quantity.toLocaleString()}개`}
+                aria-label={`${item.product.product_code}, 재고 ${item.quantity.toLocaleString()}개${item.product.is_rented ? ", 대여중" : ""}`}
               >
                 <div className="inventory-card-image">
                   <ProductThumb path={item.imagePath} alt={item.product.name} />
+                  {item.product.is_rented && <span className="rental-badge"><Handshake size={12} />대여중</span>}
                   <span className={`stock-badge ${item.status}`}>{item.status === "out" ? "품절" : item.status === "low" ? "저재고" : "정상"}</span>
                 </div>
                 <div className="inventory-card-copy">

@@ -8,6 +8,8 @@ export interface Product {
   category: string | null;
   main_image_path: string | null;
   low_stock_threshold: number;
+  is_rented: boolean;
+  rented_at: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
