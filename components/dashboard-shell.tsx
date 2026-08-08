@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Boxes, ClipboardList, LogOut, Menu, PackagePlus, X } from "lucide-react";
+import { Boxes, ClipboardList, KeyRound, LogOut, Menu, PackagePlus, X } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { Logo } from "@/components/logo";
 
@@ -11,6 +11,7 @@ const navigation = [
   { href: "/inventory", label: "재고 현황", icon: Boxes },
   { href: "/products/new", label: "상품 등록", icon: PackagePlus },
   { href: "/transactions", label: "입출고 이력", icon: ClipboardList },
+  { href: "/account", label: "계정 설정", icon: KeyRound },
 ];
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
