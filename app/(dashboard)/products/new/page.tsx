@@ -111,7 +111,7 @@ export default function NewProductPage() {
             <div className="form-fields-grid">
               <label className="field"><span>상품명 *</span><input value={name} onChange={(e) => setName(e.target.value)} placeholder="예: Classic Oxford Shirt" required /></label>
               <label className="field"><span>품번 *</span><input value={productCode} onChange={(e) => setProductCode(e.target.value)} placeholder="예: SH-2026-001" required /></label>
-              <label className="field"><span>브랜드 *</span><input value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="예: YOUNHEEPARK" list="brand-suggestions" required /><datalist id="brand-suggestions"><option value="YOUNHEEPARK" /><option value="CRISPY" /></datalist></label>
+              <label className="field"><span>브랜드 *</span><input value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="예: YOUNHEEPARK" list="brand-suggestions" required /><datalist id="brand-suggestions"><option value="YOUNHEEPARK" /><option value="CRISPY" /><option value="GREEDILOUS" /></datalist></label>
               <label className="field"><span>카테고리</span><input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="예: Shirts" /></label>
               <label className="field"><span>저재고 기준 *</span><div className="input-suffix"><input type="number" min="0" step="1" value={threshold} onChange={(e) => setThreshold(e.target.value)} required /><span>개 이하</span></div></label>
             </div>
