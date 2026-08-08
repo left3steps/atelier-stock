@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { AlertTriangle, Boxes, PackagePlus, Search, SlidersHorizontal } from "lucide-react";
+import { AlertTriangle, Boxes, PackagePlus, Search, SlidersHorizontal, Tags } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import { PageLoading } from "@/components/page-loading";
 import { ProductThumb } from "@/components/product-thumb";
@@ -33,6 +33,7 @@ export default function InventoryPage() {
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<StockFilter>("all");
+  const [brandFilter, setBrandFilter] = useState("all");
 
   const loadInventory = useCallback(async () => {
     setLoading(true); setError("");
@@ -86,19 +87,23 @@ export default function InventoryPage() {
     out: products.filter((product) => product.status === "out").length,
   }), [products]);
 
+  const brands = useMemo(() => [...new Set(products.map((item) => item.product.brand).filter(Boolean))].sort((a, b) => a.localeCompare(b, "ko")), [products]);
+
   const filtered = useMemo(() => {
     const term = query.trim().toLocaleLowerCase();
     return products.filter((item) => {
       const matchesSearch = !term || [
         item.product.name,
         item.product.product_code,
+        item.product.brand,
         item.product.category ?? "",
         ...item.rows.flatMap((row) => [row.sku, row.color_name, row.size]),
       ].some((value) => value.toLocaleLowerCase().includes(term));
       const matchesStock = filter === "all" || item.status === filter;
-      return matchesSearch && matchesStock;
+      const matchesBrand = brandFilter === "all" || item.product.brand === brandFilter;
+      return matchesSearch && matchesStock && matchesBrand;
     });
-  }, [products, query, filter]);
+  }, [products, query, filter, brandFilter]);
 
   return (
     <div className="page-stack">
@@ -116,10 +121,20 @@ export default function InventoryPage() {
 
       <section className="panel inventory-panel inventory-product-panel">
         <div className="inventory-toolbar">
-          <div className="search-box"><Search size={19} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="상품명, 품번, SKU 검색" /><kbd>⌘ K</kbd></div>
-          <div className="filter-group" aria-label="재고 필터">
-            <SlidersHorizontal size={17} />
-            {([['all', '전체'], ['low', '저재고'], ['out', '품절']] as const).map(([value, label]) => <button key={value} className={filter === value ? "active" : ""} onClick={() => setFilter(value)}>{label}</button>)}
+          <div className="search-box"><Search size={19} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="브랜드, 상품명, 품번, SKU 검색" /><kbd>⌘ K</kbd></div>
+          <div className="inventory-filters">
+            <label className="brand-filter">
+              <Tags size={16} />
+              <span className="sr-only">브랜드 필터</span>
+              <select value={brandFilter} onChange={(event) => setBrandFilter(event.target.value)}>
+                <option value="all">전체 브랜드</option>
+                {brands.map((brand) => <option key={brand} value={brand}>{brand}</option>)}
+              </select>
+            </label>
+            <div className="filter-group" aria-label="재고 필터">
+              <SlidersHorizontal size={17} />
+              {([['all', '전체'], ['low', '저재고'], ['out', '품절']] as const).map(([value, label]) => <button key={value} className={filter === value ? "active" : ""} onClick={() => setFilter(value)}>{label}</button>)}
+            </div>
           </div>
         </div>
 
@@ -139,6 +154,7 @@ export default function InventoryPage() {
                   <span className={`stock-badge ${item.status}`}>{item.status === "out" ? "품절" : item.status === "low" ? "저재고" : "정상"}</span>
                 </div>
                 <div className="inventory-card-copy">
+                  <small className="brand-label" title={item.product.brand}>{item.product.brand}</small>
                   <strong title={item.product.product_code}>{item.product.product_code}</strong>
                   <span><small>재고</small><b className={item.status}>{item.quantity.toLocaleString()}</b><small>개</small></span>
                 </div>

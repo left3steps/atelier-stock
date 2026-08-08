@@ -2,12 +2,12 @@ import { Boxes } from "lucide-react";
 
 export function Logo({ compact = false }: { compact?: boolean }) {
   return (
-    <div className="logo" aria-label="Atelier Stock">
+    <div className="logo" aria-label="YOUNHEEPARK Corp. STOCK">
       <span className="logo-mark"><Boxes size={19} strokeWidth={1.8} /></span>
       {!compact && (
         <span>
-          <strong>ATELIER</strong>
-          <small>STOCK</small>
+          <strong>YOUNHEEPARK</strong>
+          <small>Corp. STOCK</small>
         </span>
       )}
     </div>

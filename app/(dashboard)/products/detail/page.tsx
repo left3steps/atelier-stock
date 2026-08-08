@@ -80,12 +80,12 @@ export default function ProductDetailPage() {
   return (
     <div className="page-stack">
       <header className="page-header detail-header">
-        <div className="header-with-back"><Link href="/inventory" className="icon-button"><ArrowLeft size={20} /></Link><div><p className="eyebrow">PRODUCT DETAIL</p><h1>{product.name}</h1><p>{product.product_code}{product.category ? ` · ${product.category}` : ""}</p></div></div>
+        <div className="header-with-back"><Link href="/inventory" className="icon-button"><ArrowLeft size={20} /></Link><div><p className="eyebrow">PRODUCT DETAIL</p><h1>{product.name}</h1><p>{product.brand} · {product.product_code}{product.category ? ` · ${product.category}` : ""}</p></div></div>
       </header>
 
       <section className="product-hero panel">
         <ProductThumb path={product.main_image_path} alt={product.name} size="large" />
-        <div className="product-hero-info"><span className="stock-badge normal">판매 중</span><h2>{product.name}</h2><code>{product.product_code}</code><div className="product-facts"><span><small>카테고리</small><strong>{product.category || "미지정"}</strong></span><span><small>컬러</small><strong>{grouped.length}</strong></span><span><small>SKU</small><strong>{rows.length}</strong></span><span><small>총 재고</small><strong>{total.toLocaleString()}개</strong></span></div></div>
+        <div className="product-hero-info"><span className="stock-badge normal">판매 중</span><h2>{product.name}</h2><code>{product.product_code}</code><div className="product-facts"><span><small>브랜드</small><strong>{product.brand}</strong></span><span><small>카테고리</small><strong>{product.category || "미지정"}</strong></span><span><small>컬러</small><strong>{grouped.length}</strong></span><span><small>SKU</small><strong>{rows.length}</strong></span><span><small>총 재고</small><strong>{total.toLocaleString()}개</strong></span></div></div>
       </section>
 
       <section className="panel detail-section">

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Atelier Stock",
+  title: "YOUNHEEPARK Corp. STOCK",
   description: "의류 브랜드를 위한 내부 재고관리",
 };
 

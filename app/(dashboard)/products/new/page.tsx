@@ -16,6 +16,7 @@ export default function NewProductPage() {
   const router = useRouter();
   const [productCode, setProductCode] = useState("");
   const [name, setName] = useState("");
+  const [brand, setBrand] = useState("YOUNHEEPARK");
   const [category, setCategory] = useState("");
   const [threshold, setThreshold] = useState("5");
   const [mainFile, setMainFile] = useState<File | null>(null);
@@ -44,6 +45,10 @@ export default function NewProductPage() {
   async function submit(event: FormEvent) {
     event.preventDefault();
     setError("");
+    if (!brand.trim()) {
+      setError("브랜드를 입력해 주세요.");
+      return;
+    }
     if (!variants.length || variants.some((v) => !v.sku.trim() || !v.color_name.trim() || !v.size.trim())) {
       setError("모든 SKU의 컬러, 사이즈, SKU 코드를 입력해 주세요.");
       return;
@@ -55,7 +60,7 @@ export default function NewProductPage() {
     setSaving(true);
     try {
       const { data: product, error: productError } = await supabase.from("products").insert({
-        product_code: productCode.trim(), name: name.trim(), category: category.trim() || null,
+        product_code: productCode.trim(), name: name.trim(), brand: brand.trim(), category: category.trim() || null,
         low_stock_threshold: Number(threshold),
       }).select().single();
       if (productError) throw productError;
@@ -106,6 +111,7 @@ export default function NewProductPage() {
             <div className="form-fields-grid">
               <label className="field"><span>상품명 *</span><input value={name} onChange={(e) => setName(e.target.value)} placeholder="예: Classic Oxford Shirt" required /></label>
               <label className="field"><span>품번 *</span><input value={productCode} onChange={(e) => setProductCode(e.target.value)} placeholder="예: SH-2026-001" required /></label>
+              <label className="field"><span>브랜드 *</span><input value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="예: YOUNHEEPARK" list="brand-suggestions" required /><datalist id="brand-suggestions"><option value="YOUNHEEPARK" /><option value="KRISPY" /></datalist></label>
               <label className="field"><span>카테고리</span><input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="예: Shirts" /></label>
               <label className="field"><span>저재고 기준 *</span><div className="input-suffix"><input type="number" min="0" step="1" value={threshold} onChange={(e) => setThreshold(e.target.value)} required /><span>개 이하</span></div></label>
             </div>

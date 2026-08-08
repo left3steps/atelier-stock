@@ -4,6 +4,7 @@ export interface Product {
   id: string;
   product_code: string;
   name: string;
+  brand: string;
   category: string | null;
   main_image_path: string | null;
   low_stock_threshold: number;

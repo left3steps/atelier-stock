@@ -1,14 +1,14 @@
-# Atelier Stock — 의류 재고관리 V1
+# YOUNHEEPARK Corp. STOCK — 의류 재고관리 V1
 
 의류 상품의 `상품 → 컬러 → 사이즈 SKU`를 관리하는 웹 기반 내부 재고관리 도구입니다. 재고 수량은 직접 수정하지 않고, 모든 입고·출고를 `inventory_transactions` 원장에 기록한 뒤 현재고를 자동 반영합니다.
 
 ## V1 기능
 
 - Supabase 이메일/비밀번호 관리자 로그인
-- 상품 기본 정보, 대표 이미지, 컬러별 이미지 등록
+- 브랜드 라벨, 상품 기본 정보, 대표 이미지, 컬러별 이미지 등록
 - 컬러·사이즈별 SKU 등록 및 현재고 조회
 - 상품 이미지가 포함된 반응형 재고 목록
-- 상품명, 품번, SKU, 컬러, 사이즈 검색
+- 브랜드별 필터 및 상품명, 품번, SKU, 컬러, 사이즈 검색
 - 입고·출고 사유와 메모 기록
 - 트랜잭션 단위 현재고 자동 반영 및 재고 부족 출고 방지
 - SKU별 저재고/품절 표시
@@ -41,7 +41,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
 ## Supabase 설정
 
 1. Supabase 프로젝트를 만듭니다.
-2. SQL Editor에서 `supabase/migrations/202608080001_initial_inventory.sql` 전체를 실행합니다. Supabase CLI를 사용한다면 프로젝트를 연결한 뒤 `supabase db push`를 실행해도 됩니다.
+2. `supabase/migrations`의 SQL을 생성 순서대로 실행합니다. Supabase CLI를 사용한다면 프로젝트를 연결한 뒤 `supabase db push`를 실행해도 됩니다.
 3. Authentication의 Users에서 내부 관리자 계정을 생성합니다.
 4. 공개 회원가입은 사용하지 않고, 관리자만 Users에서 초대/생성하는 방식을 권장합니다.
 
