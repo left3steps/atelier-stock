@@ -1,14 +1,18 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { type ChangeEvent, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowDownToLine, ArrowLeft, ArrowUpFromLine, Clock3, Handshake } from "lucide-react";
+import { ArrowDownToLine, ArrowLeft, ArrowUpFromLine, Camera, CheckCircle2, Clock3, Handshake } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import { PageLoading } from "@/components/page-loading";
 import { ProductThumb } from "@/components/product-thumb";
 import { StockMovementDialog } from "@/components/stock-movement-dialog";
 import { supabase } from "@/lib/supabase/client";
+import { uploadProductImage } from "@/lib/supabase/images";
 import type { InventoryRow, InventoryTransaction, Product, TransactionType } from "@/lib/types";
+
+const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
+const ACCEPTED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/avif"]);
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("ko-KR", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
@@ -23,6 +27,9 @@ export default function ProductDetailPage() {
   const [error, setError] = useState("");
   const [rentalSaving, setRentalSaving] = useState(false);
   const [rentalError, setRentalError] = useState("");
+  const [imageSavingKey, setImageSavingKey] = useState<string | null>(null);
+  const [imageError, setImageError] = useState("");
+  const [imageSuccess, setImageSuccess] = useState("");
   const [dialog, setDialog] = useState<{ row: InventoryRow; type: TransactionType } | null>(null);
 
   useEffect(() => {
@@ -96,6 +103,87 @@ export default function ProductDetailPage() {
     setRentalSaving(false);
   }
 
+  function validateImage(file: File) {
+    if (!ACCEPTED_IMAGE_TYPES.has(file.type)) return "JPG, PNG, WEBP 또는 AVIF 이미지로 선택해 주세요.";
+    if (file.size > MAX_IMAGE_SIZE) return "이미지 크기는 10MB 이하로 선택해 주세요.";
+    return "";
+  }
+
+  async function replaceMainImage(event: ChangeEvent<HTMLInputElement>) {
+    const input = event.currentTarget;
+    const file = input.files?.[0];
+    if (!product || !file || imageSavingKey) return;
+
+    const validationError = validateImage(file);
+    if (validationError) {
+      setImageError(validationError);
+      input.value = "";
+      return;
+    }
+
+    setImageSavingKey("main");
+    setImageError("");
+    setImageSuccess("");
+
+    try {
+      const path = await uploadProductImage(file, `${product.id}/main`);
+      const { data, error: updateError } = await supabase
+        .from("products")
+        .update({ main_image_path: path })
+        .eq("id", product.id)
+        .select()
+        .single();
+      if (updateError) throw updateError;
+
+      const updatedProduct = data as Product;
+      setProduct(updatedProduct);
+      setRows((current) => current.map((row) => ({ ...row, product: updatedProduct })));
+      setImageSuccess("대표 이미지가 변경되었습니다.");
+    } catch (uploadError) {
+      setImageError(uploadError instanceof Error ? uploadError.message : "대표 이미지를 변경하지 못했습니다. 다시 시도해 주세요.");
+    } finally {
+      input.value = "";
+      setImageSavingKey(null);
+    }
+  }
+
+  async function replaceColorImage(color: string, colorRows: InventoryRow[], event: ChangeEvent<HTMLInputElement>) {
+    const input = event.currentTarget;
+    const file = input.files?.[0];
+    if (!product || !file || imageSavingKey) return;
+
+    const validationError = validateImage(file);
+    if (validationError) {
+      setImageError(validationError);
+      input.value = "";
+      return;
+    }
+
+    const savingKey = `color:${color}`;
+    const variantIds = colorRows.map((row) => row.id);
+    setImageSavingKey(savingKey);
+    setImageError("");
+    setImageSuccess("");
+
+    try {
+      const path = await uploadProductImage(file, `${product.id}/colors`);
+      const { error: updateError } = await supabase
+        .from("variants")
+        .update({ color_image_path: path })
+        .in("id", variantIds);
+      if (updateError) throw updateError;
+
+      const updatedIds = new Set(variantIds);
+      setRows((current) => current.map((row) => updatedIds.has(row.id) ? { ...row, color_image_path: path } : row));
+      setImageSuccess(`${color} 컬러 이미지가 변경되었습니다.`);
+    } catch (uploadError) {
+      setImageError(uploadError instanceof Error ? uploadError.message : "컬러 이미지를 변경하지 못했습니다. 다시 시도해 주세요.");
+    } finally {
+      input.value = "";
+      setImageSavingKey(null);
+    }
+  }
+
   if (loading) return <PageLoading label="상품 정보를 불러오는 중" />;
   if (error || !product) return <div className="inline-error standalone"><strong>상품을 불러오지 못했습니다.</strong><p>{error}</p><Link href="/inventory" className="button button-secondary">재고 현황으로</Link></div>;
 
@@ -107,9 +195,18 @@ export default function ProductDetailPage() {
       </header>
 
       {rentalError && <p className="form-error rental-error">{rentalError}</p>}
+      {imageError && <p className="form-error image-update-message">{imageError}</p>}
+      {imageSuccess && <p className="form-success image-update-message"><CheckCircle2 size={15} />{imageSuccess}</p>}
 
       <section className="product-hero panel">
-        <ProductThumb path={product.main_image_path} alt={product.name} size="large" />
+        <div className="product-image-editor">
+          <ProductThumb path={product.main_image_path} alt={product.name} size="large" />
+          <label className={`image-change-button ${imageSavingKey ? "is-disabled" : ""}`} aria-disabled={Boolean(imageSavingKey)}>
+            <Camera size={15} />
+            {imageSavingKey === "main" ? "업로드 중..." : product.main_image_path ? "대표 이미지 변경" : "대표 이미지 등록"}
+            <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" onChange={replaceMainImage} disabled={Boolean(imageSavingKey)} />
+          </label>
+        </div>
         <div className="product-hero-info"><div className="product-status-row"><span className="stock-badge normal">판매 중</span>{product.is_rented && <span className="rental-badge static"><Handshake size={12} />대여중</span>}</div><h2>{product.name}</h2><code>{product.product_code}</code><div className="product-facts"><span><small>브랜드</small><strong>{product.brand}</strong></span><span><small>카테고리</small><strong>{product.category || "미지정"}</strong></span><span><small>컬러</small><strong>{grouped.length}</strong></span><span><small>SKU</small><strong>{rows.length}</strong></span><span><small>총 재고</small><strong>{total.toLocaleString()}개</strong></span><span><small>대여 상태</small><strong>{product.is_rented ? "대여중" : "대여 가능"}</strong></span></div></div>
       </section>
 
@@ -118,7 +215,15 @@ export default function ProductDetailPage() {
         <div className="color-groups">
           {grouped.map(([color, colorRows]) => (
             <article className="color-group" key={color}>
-              <div className="color-group-header"><ProductThumb path={colorRows[0].color_image_path || product.main_image_path} alt={`${product.name} ${color}`} /><div><span className="option-cell">{colorRows[0].color_code && <i style={{ backgroundColor: colorRows[0].color_code }} />}{color}</span><small>{colorRows.length}개 사이즈</small></div></div>
+              <div className="color-group-header">
+                <ProductThumb path={colorRows[0].color_image_path || product.main_image_path} alt={`${product.name} ${color}`} />
+                <div className="color-group-copy"><span className="option-cell">{colorRows[0].color_code && <i style={{ backgroundColor: colorRows[0].color_code }} />}{color}</span><small>{colorRows.length}개 사이즈</small></div>
+                <label className={`image-change-button compact ${imageSavingKey ? "is-disabled" : ""}`} aria-disabled={Boolean(imageSavingKey)}>
+                  <Camera size={14} />
+                  {imageSavingKey === `color:${color}` ? "업로드 중..." : "컬러 이미지 변경"}
+                  <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" onChange={(event) => void replaceColorImage(color, colorRows, event)} disabled={Boolean(imageSavingKey)} />
+                </label>
+              </div>
               <div className="size-list">
                 {colorRows.map((row) => {
                   const state = row.quantity === 0 ? "out" : row.quantity <= product.low_stock_threshold ? "low" : "normal";
