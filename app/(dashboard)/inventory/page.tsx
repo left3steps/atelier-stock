@@ -16,7 +16,8 @@ interface InventoryProduct {
   product: Product;
   rows: InventoryRow[];
   quantity: number;
-  imagePath: string | null;
+  frontImagePath: string | null;
+  backImagePath: string | null;
   status: ProductStockStatus;
 }
 
@@ -74,7 +75,8 @@ export default function InventoryPage() {
         product,
         rows: productRows,
         quantity,
-        imagePath: product.main_image_path || productRows.find((row) => row.color_image_path)?.color_image_path || null,
+        frontImagePath: product.main_image_path || productRows.find((row) => row.color_image_path)?.color_image_path || null,
+        backImagePath: product.back_image_path,
         status,
       };
     });
@@ -152,7 +154,16 @@ export default function InventoryPage() {
                 aria-label={`${item.product.product_code}, 재고 ${item.quantity.toLocaleString()}개${item.product.is_rented ? ", 대여중" : ""}`}
               >
                 <div className="inventory-card-image">
-                  <ProductThumb path={item.imagePath} alt={item.product.name} />
+                  <div className={`inventory-card-images ${item.backImagePath ? "has-back" : ""}`}>
+                    <div className="inventory-card-angle">
+                      <ProductThumb path={item.frontImagePath} alt={`${item.product.name} 전면`} />
+                      {item.backImagePath && <span className="angle-label">전면</span>}
+                    </div>
+                    {item.backImagePath && <div className="inventory-card-angle back">
+                      <ProductThumb path={item.backImagePath} alt={`${item.product.name} 후면`} />
+                      <span className="angle-label">후면</span>
+                    </div>}
+                  </div>
                   {item.product.is_rented && <span className="rental-badge"><Handshake size={12} />대여중</span>}
                   <span className={`stock-badge ${item.status}`}>{item.status === "out" ? "품절" : item.status === "low" ? "저재고" : "정상"}</span>
                 </div>

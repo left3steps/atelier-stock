@@ -21,6 +21,8 @@ export default function NewProductPage() {
   const [threshold, setThreshold] = useState("5");
   const [mainFile, setMainFile] = useState<File | null>(null);
   const [mainPreview, setMainPreview] = useState<string | null>(null);
+  const [backFile, setBackFile] = useState<File | null>(null);
+  const [backPreview, setBackPreview] = useState<string | null>(null);
   const [variants, setVariants] = useState<VariantDraft[]>([newVariant()]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -31,6 +33,12 @@ export default function NewProductPage() {
     const file = event.target.files?.[0] ?? null;
     setMainFile(file);
     setMainPreview(file ? URL.createObjectURL(file) : null);
+  }
+
+  function selectBackImage(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0] ?? null;
+    setBackFile(file);
+    setBackPreview(file ? URL.createObjectURL(file) : null);
   }
 
   function updateVariant(key: string, patch: Partial<VariantDraft>) {
@@ -65,10 +73,15 @@ export default function NewProductPage() {
       }).select().single();
       if (productError) throw productError;
 
-      let mainPath: string | null = null;
-      if (mainFile) {
-        mainPath = await uploadProductImage(mainFile, `${product.id}/main`);
-        const { error: imageUpdateError } = await supabase.from("products").update({ main_image_path: mainPath }).eq("id", product.id);
+      const [mainPath, backPath] = await Promise.all([
+        mainFile ? uploadProductImage(mainFile, `${product.id}/main`) : Promise.resolve(null),
+        backFile ? uploadProductImage(backFile, `${product.id}/back`) : Promise.resolve(null),
+      ]);
+      if (mainPath || backPath) {
+        const { error: imageUpdateError } = await supabase
+          .from("products")
+          .update({ main_image_path: mainPath, back_image_path: backPath })
+          .eq("id", product.id);
         if (imageUpdateError) throw imageUpdateError;
       }
 
@@ -104,10 +117,16 @@ export default function NewProductPage() {
         <section className="panel form-section">
           <div className="section-heading"><span>01</span><div><h2>기본 정보</h2><p>상품을 구분하는 대표 정보를 입력합니다.</p></div></div>
           <div className="product-form-grid">
-            <label className={`image-uploader ${mainPreview ? "has-image" : ""}`}>
-              {mainPreview ? <><img src={mainPreview} alt="대표 이미지 미리보기" /><button type="button" className="remove-preview" onClick={(e) => { e.preventDefault(); setMainFile(null); setMainPreview(null); }}><X size={17} /></button></> : <><ImagePlus size={27} /><strong>대표 이미지</strong><span>JPG, PNG, WEBP · 최대 10MB</span></>}
-              <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" onChange={selectMainImage} />
-            </label>
+            <div className="product-images-grid">
+              <label className={`image-uploader ${mainPreview ? "has-image" : ""}`}>
+                {mainPreview ? <><img src={mainPreview} alt="전면 이미지 미리보기" /><span className="image-angle-label">전면</span><button type="button" className="remove-preview" onClick={(e) => { e.preventDefault(); setMainFile(null); setMainPreview(null); }}><X size={17} /></button></> : <><ImagePlus size={27} /><strong>전면 이미지</strong><span>JPG, PNG, WEBP · 최대 10MB</span></>}
+                <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" onChange={selectMainImage} />
+              </label>
+              <label className={`image-uploader ${backPreview ? "has-image" : ""}`}>
+                {backPreview ? <><img src={backPreview} alt="후면 이미지 미리보기" /><span className="image-angle-label">후면</span><button type="button" className="remove-preview" onClick={(e) => { e.preventDefault(); setBackFile(null); setBackPreview(null); }}><X size={17} /></button></> : <><ImagePlus size={27} /><strong>후면 이미지</strong><span>선택 사항</span></>}
+                <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" onChange={selectBackImage} />
+              </label>
+            </div>
             <div className="form-fields-grid">
               <label className="field"><span>상품명 *</span><input value={name} onChange={(e) => setName(e.target.value)} placeholder="예: Classic Oxford Shirt" required /></label>
               <label className="field"><span>품번 *</span><input value={productCode} onChange={(e) => setProductCode(e.target.value)} placeholder="예: SH-2026-001" required /></label>

@@ -7,6 +7,7 @@ export interface Product {
   brand: string;
   category: string | null;
   main_image_path: string | null;
+  back_image_path: string | null;
   low_stock_threshold: number;
   is_rented: boolean;
   rented_at: string | null;

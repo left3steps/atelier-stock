@@ -13,6 +13,7 @@ import type { InventoryRow, InventoryTransaction, Product, TransactionType } fro
 
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
 const ACCEPTED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/avif"]);
+type ProductImageSide = "front" | "back";
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("ko-KR", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
@@ -109,7 +110,7 @@ export default function ProductDetailPage() {
     return "";
   }
 
-  async function replaceMainImage(event: ChangeEvent<HTMLInputElement>) {
+  async function replaceProductImage(side: ProductImageSide, event: ChangeEvent<HTMLInputElement>) {
     const input = event.currentTarget;
     const file = input.files?.[0];
     if (!product || !file || imageSavingKey) return;
@@ -121,15 +122,17 @@ export default function ProductDetailPage() {
       return;
     }
 
-    setImageSavingKey("main");
+    const imageLabel = side === "front" ? "전면" : "후면";
+    const column = side === "front" ? "main_image_path" : "back_image_path";
+    setImageSavingKey(side);
     setImageError("");
     setImageSuccess("");
 
     try {
-      const path = await uploadProductImage(file, `${product.id}/main`);
+      const path = await uploadProductImage(file, `${product.id}/${side === "front" ? "main" : "back"}`);
       const { data, error: updateError } = await supabase
         .from("products")
-        .update({ main_image_path: path })
+        .update({ [column]: path })
         .eq("id", product.id)
         .select()
         .single();
@@ -138,9 +141,9 @@ export default function ProductDetailPage() {
       const updatedProduct = data as Product;
       setProduct(updatedProduct);
       setRows((current) => current.map((row) => ({ ...row, product: updatedProduct })));
-      setImageSuccess("대표 이미지가 변경되었습니다.");
+      setImageSuccess(`${imageLabel} 이미지가 변경되었습니다.`);
     } catch (uploadError) {
-      setImageError(uploadError instanceof Error ? uploadError.message : "대표 이미지를 변경하지 못했습니다. 다시 시도해 주세요.");
+      setImageError(uploadError instanceof Error ? uploadError.message : `${imageLabel} 이미지를 변경하지 못했습니다. 다시 시도해 주세요.`);
     } finally {
       input.value = "";
       setImageSavingKey(null);
@@ -199,13 +202,23 @@ export default function ProductDetailPage() {
       {imageSuccess && <p className="form-success image-update-message"><CheckCircle2 size={15} />{imageSuccess}</p>}
 
       <section className="product-hero panel">
-        <div className="product-image-editor">
-          <ProductThumb path={product.main_image_path} alt={product.name} size="large" />
-          <label className={`image-change-button ${imageSavingKey ? "is-disabled" : ""}`} aria-disabled={Boolean(imageSavingKey)}>
-            <Camera size={15} />
-            {imageSavingKey === "main" ? "업로드 중..." : product.main_image_path ? "대표 이미지 변경" : "대표 이미지 등록"}
-            <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" onChange={replaceMainImage} disabled={Boolean(imageSavingKey)} />
-          </label>
+        <div className="product-angle-images">
+          <div className="product-image-editor">
+            <ProductThumb path={product.main_image_path} alt={`${product.name} 전면`} size="large" />
+            <label className={`image-change-button ${imageSavingKey ? "is-disabled" : ""}`} aria-disabled={Boolean(imageSavingKey)}>
+              <Camera size={15} />
+              {imageSavingKey === "front" ? "업로드 중..." : product.main_image_path ? "전면 이미지 변경" : "전면 이미지 등록"}
+              <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" onChange={(event) => void replaceProductImage("front", event)} disabled={Boolean(imageSavingKey)} />
+            </label>
+          </div>
+          <div className="product-image-editor">
+            <ProductThumb path={product.back_image_path} alt={`${product.name} 후면`} size="large" />
+            <label className={`image-change-button ${imageSavingKey ? "is-disabled" : ""}`} aria-disabled={Boolean(imageSavingKey)}>
+              <Camera size={15} />
+              {imageSavingKey === "back" ? "업로드 중..." : product.back_image_path ? "후면 이미지 변경" : "후면 이미지 등록"}
+              <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" onChange={(event) => void replaceProductImage("back", event)} disabled={Boolean(imageSavingKey)} />
+            </label>
+          </div>
         </div>
         <div className="product-hero-info"><div className="product-status-row"><span className="stock-badge normal">판매 중</span>{product.is_rented && <span className="rental-badge static"><Handshake size={12} />대여중</span>}</div><h2>{product.name}</h2><code>{product.product_code}</code><div className="product-facts"><span><small>브랜드</small><strong>{product.brand}</strong></span><span><small>카테고리</small><strong>{product.category || "미지정"}</strong></span><span><small>컬러</small><strong>{grouped.length}</strong></span><span><small>SKU</small><strong>{rows.length}</strong></span><span><small>총 재고</small><strong>{total.toLocaleString()}개</strong></span><span><small>대여 상태</small><strong>{product.is_rented ? "대여중" : "대여 가능"}</strong></span></div></div>
       </section>
